@@ -2,4 +2,4 @@
 
 Gets color clusters using the K-mean algorithm.
 
-![ScreenShot](http://imgur.com/SzxbPvg)
+![Alt text](http://i.imgur.com/SzxbPvg.jpg "Optional Title")
