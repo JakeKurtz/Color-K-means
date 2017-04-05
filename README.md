@@ -1,6 +1,6 @@
 # Color K-means
 
-Gets color clusters using the K-mean algorithm.
+Gets color palette using K-mean algorithm.
 
 ![Alt text](http://i.imgur.com/SzxbPvg.jpg)
 
