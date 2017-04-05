@@ -1,7 +1,9 @@
-import colorsys
 from math import sqrt
 from random import randrange
+from numpy.random import choice
 from PIL import Image, ImageDraw
+import colorsys
+
 from colormath.color_objects import sRGBColor, LabColor
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie2000
@@ -30,6 +32,26 @@ def find_center(cluster):
     else:
         return ()
 
+def init_centroids(Lab_colors,n):
+    centroid = []
+    centroid.append((Lab_colors[randrange(0, len(Lab_colors))])) # one center chosen uniformly at random
+    for i in range(n):
+        weight = []
+        distance = []
+        for j in range(len(Lab_colors)):
+            minimum = float("inf")
+            for k in range(len(centroid)):
+                delta_e = (delta_e_cie2000(centroid[k],Lab_colors[j]))
+                if delta_e < minimum:
+                    minimum = delta_e
+            distance.append(minimum**2)
+        for j in range(len(Lab_colors)):
+            weight.append(distance[j] / sum(distance))
+        x = choice(list(Lab_colors),p=weight)
+        centroid.append(Lab_colors[x])
+
+    return centroid
+
 def k_means(Lab_colors, RGB_colors, k, centroid):
 
     cluster = [[] for i in range(k)]
@@ -45,8 +67,8 @@ def k_means(Lab_colors, RGB_colors, k, centroid):
 
     for i in range(k):
         centroid[i] = find_center(cluster[i])
-        if centroid[i] == ():
-            centroid[i] = ((Lab_colors[randrange(0, len(Lab_colors))]))
+        #if centroid[i] == ():
+            #centroid[i] = ((Lab_colors[randrange(0, len(Lab_colors))]))
 
     return centroid
 
@@ -54,6 +76,13 @@ def main():
 
     infile = input('Enter file name: ')
     image = Image.open(infile)
+
+    img_w, img_h = image.size
+    background = Image.new('RGB', (round((img_w * 1.025)), round((img_h * 1.5))), 'white')
+    bg_w, bg_h = background.size
+    offset = (round((bg_w - img_w) / 2), round((bg_w - img_w) / 2))
+    background.paste(image, offset)
+
     image = image.convert('RGB')
     image = image.resize((SIZE, SIZE))
     image = image.convert('P', palette=Image.ADAPTIVE, colors=256)
@@ -69,6 +98,7 @@ def main():
 
     centroid = []
     rgb_centroid = []
+    rgb_cluster = []
 
     # Creating RGB dictionary
     i = 0
@@ -79,13 +109,14 @@ def main():
     # Creating Lab dictionary
     for key in DICT_RGB_COLOR:
         DICT_LAB_COLOR[key] = (
-        convert_color(sRGBColor(DICT_RGB_COLOR[key][1][0], DICT_RGB_COLOR[key][1][1], DICT_RGB_COLOR[key][1][2]),
-                      LabColor))
+        convert_color(sRGBColor(DICT_RGB_COLOR[key][1][0],DICT_RGB_COLOR[key][1][1],DICT_RGB_COLOR[key][1][2]),LabColor))
 
     # Initializing lists
     for i in range(k):
         rgb_centroid.append([])
-        centroid.append((LabColor(randrange(0, 100), randrange(-86, 98), randrange(-107, 94))))
+        centroid.append(DICT_LAB_COLOR[randrange(0, len(DICT_LAB_COLOR))])
+
+    centroid = init_centroids(DICT_LAB_COLOR,k)
 
     # How many iterations to run k-means
     for i in range(15):
@@ -97,18 +128,25 @@ def main():
         rgb_centroid[i] = rgb_centroid[i].get_value_tuple()
         rgb_centroid[i] = (round(rgb_centroid[i][0]),round(rgb_centroid[i][1]),round(rgb_centroid[i][2]))
 
-    rgb_centroid.sort(key=lambda rgb: colorsys.rgb_to_hsv(*rgb))
-    horizontal = 1000/k
-    pal = Image.new('RGB', (1000, 1000))
-    draw = ImageDraw.Draw(pal)
+    #for i in range(k):
+        #for j in range(len(cluster[i])):
+            #rgb_cluster.append(cluster[i][j][1])
+    #print(rgb_cluster)
 
-    posx = 0
+    rgb_centroid.sort(key=lambda rgb: colorsys.rgb_to_hsv(*rgb))
+    draw2 = ImageDraw.Draw(background)
+    space = (round((bg_w - img_w) / 2))
+    horz_size = (img_w-(space*(k-1)))/k
+    virt_size = (2*space)+img_h
+    horizontal = space+horz_size
+    posx = space
+
     for i in range(k):
-        draw.rectangle([posx, 0, posx+horizontal, 1000], fill=rgb_centroid[i])
+        draw2.rectangle([posx, virt_size, horz_size+posx, bg_h-space], fill=rgb_centroid[i])
         posx += horizontal
 
-    del draw
+    del draw2
 
-    pal.save(infile+'-gradient'+'.PNG')
+    background.save(infile+'-gradient'+'.PNG')
 
 main()
