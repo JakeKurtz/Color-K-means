@@ -2,4 +2,4 @@
 
 Gets color clusters using the K-mean algorithm.
 
-change test
+http://imgur.com/SzxbPvg
